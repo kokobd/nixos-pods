@@ -55,7 +55,7 @@
 
         packages =
           {
-            cache-compressor-lambda = (make pkgs).bin "cache-compressor-lambda";
+            data-compressor-lambda = (make pkgs).bin "data-compressor-lambda";
             cache-compressor-job = (make pkgs).bin "cache-compressor-job";
           };
 

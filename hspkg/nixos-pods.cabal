@@ -50,6 +50,8 @@ common opts
       , warp
       , amazonka-cloudformation
       , hoist-error
+      , uuid
+      , conduit
 
 library
     import:           opts
@@ -57,6 +59,7 @@ library
         MyLib
         NixOS.CacheCompressor
         NixOS.Infra.Logger
+        NixOS.Infra.Amazonka
     -- other-modules:
     -- other-extensions:
     hs-source-dirs:   src
@@ -76,15 +79,15 @@ common exe-opts
     ghc-options:      -threaded -rtsopts -with-rtsopts=-N
     build-depends:    nixos-pods
 
-executable cache-compressor-job
+executable data-compressor-job
     import:           exe-opts
     main-is:          Main.hs
-    hs-source-dirs:   exe/cache-compressor-job
+    hs-source-dirs:   exe/data-compressor-job
 
-executable cache-compressor-lambda
+executable data-compressor-lambda
     import:           exe-opts
     main-is:          Main.hs
-    hs-source-dirs:   exe/cache-compressor-lambda
+    hs-source-dirs:   exe/data-compressor-lambda
 
 executable deploy
     import:           exe-opts
