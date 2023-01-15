@@ -30,7 +30,9 @@ import Control.Monad.Logger
     ToLogStr (..),
     defaultOutput,
   )
+import Data.ByteString qualified as BS
 import Data.Generics.Labels ()
+import System.Log.FastLogger (fromLogStr)
 import Effectful
   ( Eff,
     Effect,
@@ -50,7 +52,6 @@ import Effectful.Dispatch.Dynamic
 import Effectful.Reader.Static (ask, runReader)
 import Effectful.TH (makeEffect)
 import Relude hiding (Reader, ask, runReader)
-import System.IO (hPrint)
 
 data Logger :: Effect where
   RunPureLoggingT :: PureLoggingT m a -> Logger m a
@@ -106,5 +107,5 @@ runCmdLineAppLogger :: IOE :> es => Eff (Logger : es) a -> Eff es a
 runCmdLineAppLogger = runLogger $
   pure $ \loc source level msg ->
     if | level == LevelDebug -> defaultOutput stdout loc source level msg
-       | level <= LevelWarn -> print msg
-       | otherwise -> hPrint stderr msg
+       | level <= LevelWarn -> BS.hPut stdout $ fromLogStr msg <> "\n"
+       | otherwise -> BS.hPut stderr $ fromLogStr msg <> "\n"

@@ -1,5 +1,7 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module NixosPods.Dhall.TH
-  ( dhallExpr,
+  ( withPackage,
   )
 where
 
@@ -10,8 +12,8 @@ import Language.Haskell.TH (Exp, Q)
 import Language.Haskell.TH.Syntax (addDependentFile)
 import Relude
 
-dhallExpr :: Q Exp
-dhallExpr = do
+withPackage :: (Text -> Text) -> Q Exp
+withPackage f = do
   packagePathMaybe <- liftIO $ lookupEnv "DHALL_PACKAGE_PATH"
   packagePath <-
     maybe
@@ -20,4 +22,4 @@ dhallExpr = do
       pure
       packagePathMaybe
   addDependentFile packagePath
-  staticDhallExpression (T.pack packagePath)
+  staticDhallExpression $ f ("(" <> T.pack packagePath <> ")")

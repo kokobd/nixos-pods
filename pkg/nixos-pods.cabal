@@ -65,6 +65,7 @@ common opts
     , uuid
     , wai-handler-hal
     , warp
+    , fast-logger
 
 library
   import:          opts

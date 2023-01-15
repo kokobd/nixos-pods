@@ -31,26 +31,6 @@
         "type": "github"
       }
     },
-    "nix-bundle": {
-      "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1660100837,
-        "narHash": "sha256-RKzH/bCKzz6rw1IbTjm0tusjBlT4Dp52VkBPIpXyHtc=",
-        "owner": "matthewbauer",
-        "repo": "nix-bundle",
-        "rev": "e9fa7e8a118942adafa8592a28b301ee23d37c13",
-        "type": "github"
-      },
-      "original": {
-        "owner": "matthewbauer",
-        "repo": "nix-bundle",
-        "type": "github"
-      }
-    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1669833724,
@@ -71,7 +51,6 @@
       "inputs": {
         "flake-compat": "flake-compat",
         "flake-utils": "flake-utils",
-        "nix-bundle": "nix-bundle",
         "nixpkgs": "nixpkgs"
       }
     }

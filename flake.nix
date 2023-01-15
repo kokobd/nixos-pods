@@ -6,32 +6,28 @@
       url = "github:edolstra/flake-compat";
       flake = false;
     };
-    nix-bundle = {
-      url = "github:matthewbauer/nix-bundle";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
   };
-  outputs = inputs@{ self, nixpkgs, nix-bundle, flake-utils, ... }:
+  outputs = inputs@{ self, nixpkgs, flake-utils, ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
+        dhall = import ./nix/dhall.nix { inherit pkgs; };
         make = pkgs:
           let
-            dhall = import ./nix/dhall.nix { inherit pkgs; };
-
             cabalPackage =
-            pkgs.haskell.lib.compose.overrideCabal (old: old // {
-              preBuild = ''
-                export DHALL_PACKAGE_PATH=${dhall}/source.dhall
-              '';
-            }) 
-              ((pkgs.haskell.packages.ghc92.override {
-                packageSetConfig = final: prev: {
-                  withHoogle = true;
-                };
-                overrides = import ./nix/haskell-overrides.nix { inherit pkgs; };
-              }).callCabal2nix "nixos-pods" ./pkg
-                { });
+              pkgs.haskell.lib.compose.overrideCabal
+                (old: old // {
+                  preBuild = ''
+                    export DHALL_PACKAGE_PATH=${dhall}/source.dhall
+                  '';
+                })
+                ((pkgs.haskell.packages.ghc92.override {
+                  packageSetConfig = final: prev: {
+                    withHoogle = true;
+                  };
+                  overrides = import ./nix/haskell-overrides.nix { inherit pkgs; };
+                }).callCabal2nix "nixos-pods" ./pkg
+                  { });
 
             pickExecutable = name:
               pkgs.runCommand name { } ''
@@ -40,34 +36,29 @@
           in
           {
             env = cabalPackage.env;
-            bin = name:
-              nix-bundle.defaultBundler {
-                program = pickExecutable name;
-                inherit system;
-              };
-            bin-raw = pickExecutable;
+            bin = pickExecutable;
           };
 
-        deploy-base =
-          pkgs.writeScriptBin "deploy-base" ''
-            ${(make pkgs).bin-raw "deploy"} base --dhall-file ${./base.dhall} $@
-          '';
-
-        # dhall = pkgs.buildDhallPackage 
+        tool = (make pkgs).bin "tool";
       in
       {
-        apps = {
-          deploy-base = {
+        apps =
+          let toolApp = {
             type = "app";
-            program = "${deploy-base}/bin/deploy-base";
+            program = "${tool}";
           };
-        };
+          in
+          {
+            default = toolApp;
+            tool = toolApp;
+          };
 
         packages =
           {
+            inherit tool;
             data-compressor-lambda = (make pkgs).bin "data-compressor-lambda";
             data-compressor-job = (make pkgs).bin "data-compressor-job";
-            dhall = import ./nix/dhall.nix { inherit pkgs; };
+            inherit dhall;
           };
 
         devShells = import ./nix/shells.nix make pkgs;

@@ -10,9 +10,11 @@ module NixosPods.Tool.Command.Deploy
 where
 
 import Amazonka.CloudFormation
-  ( ChangeSetType (..),
+  ( ChangeSetStatus (..),
+    ChangeSetType (..),
     newChangeSetCreateComplete,
     newCreateChangeSet,
+    newDeleteChangeSet,
     newDescribeChangeSet,
     newDescribeStacks,
     newExecuteChangeSet,
@@ -22,6 +24,7 @@ import Control.Exception.Safe (throwIO)
 import Control.Lens (view, (?~), (^.))
 import Control.Monad.Logger
 import Data.Aeson qualified as Json
+import Data.Text qualified as T
 import Data.UUID qualified as UUID
 import Data.UUID.V4 qualified as UUID
 import Dhall.JSON (CompileError, dhallToJSON, omitNull)
@@ -76,6 +79,19 @@ runCommandDeploy = interpret $ \_ -> \case
       Amazonka.await newChangeSetCreateComplete $
         newDescribeChangeSet changeSetName
           & #stackName ?~ stackName
-    void $ Amazonka.send $ newExecuteChangeSet changeSetName & #stackName ?~ stackName
+    changeSet <- Amazonka.send $ newDescribeChangeSet changeSetName & #stackName ?~ stackName
+    let status = changeSet ^. #status
+        statusReason = changeSet ^. #statusReason
+    if status == ChangeSetStatus_FAILED
+      && maybe
+        False
+        ( "The submitted information didn't contain changes."
+            `T.isInfixOf`
+        )
+        statusReason
+      then do
+        runPureLoggingT $ $(logInfo) "No change is required, skipping deployment"
+        void $ Amazonka.send $ newDeleteChangeSet changeSetName & #stackName ?~ stackName
+      else void $ Amazonka.send $ newExecuteChangeSet changeSetName & #stackName ?~ stackName
 
 -- TODO deploy controller.dhall

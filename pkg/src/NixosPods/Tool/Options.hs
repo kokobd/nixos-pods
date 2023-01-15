@@ -11,15 +11,15 @@ module NixosPods.Tool.Options
 where
 
 import Effectful
-import Effectful.Dispatch.Dynamic
+import Effectful.Dispatch.Dynamic (reinterpret)
 import Effectful.Reader.Dynamic
 import Effectful.TH
 import Options.Applicative
 import Relude hiding (Reader, ask, runReader)
 
 data Options = Options
-  { command :: Command,
-    stackNamePrefix :: Text
+  { stackNamePrefix :: Text,
+    command :: Command
   }
   deriving stock (Show, Eq, Generic)
 
@@ -39,14 +39,14 @@ readOptions = execParser opts
 optionsParser :: Parser Options
 optionsParser =
   Options
-    <$> subparser
-      ( command "deploy" (info commandDeployParser (progDesc "Deploy NixOS Pods to AWS"))
-      )
-    <*> strOption
+    <$> strOption
       ( long "stack-name-prefix"
           <> metavar "TEXT"
           <> help "Prefix for all the CloudFormation stacks"
           <> value "nixos"
+      )
+    <*> subparser
+      ( command "deploy" (info commandDeployParser (progDesc "Deploy NixOS Pods to AWS"))
       )
 
 commandDeployParser :: Parser Command

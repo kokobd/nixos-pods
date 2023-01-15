@@ -3,7 +3,7 @@ let Prelude =
         sha256:26b0ef498663d269e4dc6a82b0ee289ec565d683ef4c00d0ebdd25333a5a3c98
 
 let CloudFormation =
-      https://github.com/jcouyang/dhall-aws-cloudformation/raw/0.9.64/package.dhall
+      ./dhall-aws-cloudformation/package.dhall
         sha256:bf2cdcc3a4aa4804db580c415f86f0bb5a98ee803bb65a7a246480116f0e8873
 
 let JSON = Prelude.JSON
