@@ -14,16 +14,24 @@
   outputs = inputs@{ self, nixpkgs, nix-bundle, flake-utils, ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let
-        pkgs = nixpkgs.legacyPackages."${system}";
+        pkgs = nixpkgs.legacyPackages.${system};
         make = pkgs:
           let
-            cabalPackage = (pkgs.haskell.packages.ghc92.override {
-              packageSetConfig = final: prev: {
-                withHoogle = true;
-              };
-              overrides = import ./nix/haskell-overrides.nix { inherit pkgs; };
-            }).callCabal2nix "nixos-pods" ./hspkg
-              { };
+            dhall = import ./nix/dhall.nix { inherit pkgs; };
+
+            cabalPackage =
+            pkgs.haskell.lib.compose.overrideCabal (old: old // {
+              preBuild = ''
+                export DHALL_PACKAGE_PATH=${dhall}/source.dhall
+              '';
+            }) 
+              ((pkgs.haskell.packages.ghc92.override {
+                packageSetConfig = final: prev: {
+                  withHoogle = true;
+                };
+                overrides = import ./nix/haskell-overrides.nix { inherit pkgs; };
+              }).callCabal2nix "nixos-pods" ./pkg
+                { });
 
             pickExecutable = name:
               pkgs.runCommand name { } ''
@@ -44,6 +52,8 @@
           pkgs.writeScriptBin "deploy-base" ''
             ${(make pkgs).bin-raw "deploy"} base --dhall-file ${./base.dhall} $@
           '';
+
+        # dhall = pkgs.buildDhallPackage 
       in
       {
         apps = {
@@ -56,7 +66,8 @@
         packages =
           {
             data-compressor-lambda = (make pkgs).bin "data-compressor-lambda";
-            cache-compressor-job = (make pkgs).bin "cache-compressor-job";
+            data-compressor-job = (make pkgs).bin "data-compressor-job";
+            dhall = import ./nix/dhall.nix { inherit pkgs; };
           };
 
         devShells = import ./nix/shells.nix make pkgs;

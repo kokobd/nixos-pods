@@ -1,0 +1,1 @@
+{ cfnStackTemplates.base = ./base.dhall }

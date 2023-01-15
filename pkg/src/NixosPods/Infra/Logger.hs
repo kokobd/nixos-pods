@@ -2,18 +2,27 @@
 {-# LANGUAGE GeneralisedNewtypeDeriving #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE OverloadedLabels #-}
+{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
+{-# LANGUAGE MultiWayIf #-}
 
-module NixOS.Infra.Logger where
+module NixosPods.Infra.Logger
+  ( Logger(..)
+  , PureLoggingT
+  , runPureLoggingT
+  -- * Interpreters
+  , runStdoutDefaultLogger
+  , runCmdLineAppLogger
+  ) where
 
 import Control.Lens (view, (^.))
 import Control.Monad.Logger
   ( Loc,
-    LogLevel,
+    LogLevel (..),
     LogSource,
     LogStr,
     MonadLogger (..),
@@ -38,17 +47,18 @@ import Effectful.Dispatch.Dynamic
   ( localLiftUnliftIO,
     reinterpret,
   )
-import Effectful.Reader.Static (Reader, ask, runReader)
+import Effectful.Reader.Static (ask, runReader)
 import Effectful.TH (makeEffect)
 import Relude hiding (Reader, ask, runReader)
+import System.IO (hPrint)
 
 data Logger :: Effect where
-  WithLogger :: PureLoggingT m a -> Logger m a
+  RunPureLoggingT :: PureLoggingT m a -> Logger m a
 
 type LogFunc m = Loc -> LogSource -> LogLevel -> LogStr -> m ()
 
 newtype PureLoggingT m a = PureLoggingT
-  { runPureLoggingT :: ReaderT (LogFunc m) m a
+  { runPureLoggingT' :: ReaderT (LogFunc m) m a
   }
   deriving newtype (Functor, Applicative, Monad)
   deriving stock (Generic)
@@ -64,7 +74,7 @@ instance MonadIO m => MonadIO (PureLoggingT m) where
 
 instance MonadUnliftIO m => MonadUnliftIO (PureLoggingT m) where
   withRunInIO :: ((forall a. PureLoggingT m a -> IO a) -> IO b) -> PureLoggingT m b
-  withRunInIO action = PureLoggingT $ withRunInIO $ \runInIO -> action $ runInIO . view #runPureLoggingT
+  withRunInIO action = PureLoggingT $ withRunInIO $ \runInIO -> action $ runInIO . view #runPureLoggingT'
 
 instance IOE :> es => MonadLoggerIO (PureLoggingT (Eff es)) where
   askLoggerIO :: PureLoggingT (Eff es) (LogFunc IO)
@@ -80,15 +90,21 @@ makeEffect ''Logger
 
 runLogger ::
   IOE :> es =>
+  Eff es (LogFunc IO) ->
   Eff (Logger : es) a ->
   Eff es a
-runLogger = reinterpret initLogger $ \env -> \case
-  WithLogger action -> do
+runLogger initLogFunc = reinterpret (\action -> initLogFunc >>= flip runReader action) $ \env -> \case
+  RunPureLoggingT action -> do
     logFunc :: LogFunc IO <- ask
     localLiftUnliftIO env SeqUnlift $ \liftEff unlift -> do
-      unlift $ runReaderT (action ^. #runPureLoggingT) $ \loc source level msg -> liftEff $ logFunc loc source level msg
+      unlift $ runReaderT (action ^. #runPureLoggingT') $ \loc source level msg -> liftEff $ logFunc loc source level msg
 
-initLogger :: Eff (Reader (LogFunc IO) : es) a -> Eff es a
-initLogger action = do
-  let logFunc = defaultOutput stdout
-  runReader logFunc action
+runStdoutDefaultLogger :: IOE :> es => Eff (Logger : es) a -> Eff es a
+runStdoutDefaultLogger = runLogger $ pure (defaultOutput stdout)
+
+runCmdLineAppLogger :: IOE :> es => Eff (Logger : es) a -> Eff es a
+runCmdLineAppLogger = runLogger $
+  pure $ \loc source level msg ->
+    if | level == LevelDebug -> defaultOutput stdout loc source level msg
+       | level <= LevelWarn -> print msg
+       | otherwise -> hPrint stderr msg

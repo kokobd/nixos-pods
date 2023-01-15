@@ -1,3 +1,0 @@
-[submodule "deps/dhall-aws-cloudformation"]
-	path = deps/dhall-aws-cloudformation
-	url = https://github.com/kokobd/dhall-aws-cloudformation.git

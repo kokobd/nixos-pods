@@ -1,0 +1,116 @@
+cabal-version:      3.4
+name:               nixos-pods
+version:            0.1.0.0
+synopsis:           NixosPods Pods
+license:            BSD-3-Clause
+author:             kokobd
+maintainer:         contact@zelinf.net
+category:           Web
+build-type:         Simple
+extra-source-files: dhall/*.dhall
+
+common opts
+  ghc-options:        -Wall
+  default-language:   GHC2021
+  default-extensions:
+    NoFieldSelectors
+    NoImplicitPrelude
+    DataKinds
+    DerivingStrategies
+    DuplicateRecordFields
+    GADTs
+    KindSignatures
+    LambdaCase
+    OverloadedLabels
+    ScopedTypeVariables
+    TemplateHaskell
+    TypeApplications
+    TypeFamilies
+    TypeOperators
+
+  build-depends:
+    , aeson
+    , amazonka
+    , amazonka-cloudformation
+    , amazonka-dynamodb
+    , amazonka-ec2
+    , amazonka-s3
+    , base
+    , conduit
+    , dhall
+    , dhall-json
+    , directory
+    , effectful
+    , effectful-core
+    , effectful-th
+    , envparse
+    , file-embed
+    , filepath
+    , generic-lens
+    , hal
+    , hoist-error
+    , lens
+    , monad-logger
+    , monad-logger-aeson
+    , mtl
+    , optparse-applicative
+    , relude
+    , resourcet-effectful
+    , safe-exceptions
+    , servant
+    , servant-server
+    , string-interpolate
+    , template-haskell
+    , transformers
+    , uuid
+    , wai-handler-hal
+    , warp
+
+library
+  import:          opts
+  hs-source-dirs:  src
+
+  -- cabal-fmt: expand src
+  exposed-modules:
+    NixosPods.DataCompressor
+    NixosPods.Dhall
+    NixosPods.Dhall.TH
+    NixosPods.Infra.Amazonka
+    NixosPods.Infra.Logger
+    NixosPods.Prelude
+    NixosPods.Tool
+    NixosPods.Tool.Command
+    NixosPods.Tool.Command.Deploy
+    NixosPods.Tool.Options
+
+test-suite tests
+  import:         opts
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is:        Main.hs
+  build-depends:
+    , nixos-pods
+    , tasty
+    , tasty-hunit
+
+common exe-opts
+  import:        opts
+  ghc-options:   -threaded -rtsopts -with-rtsopts=-N
+  build-depends: nixos-pods
+
+executable data-compressor-job
+  import:         exe-opts
+  main-is:        Main.hs
+  hs-source-dirs: exe/data-compressor-job
+
+executable data-compressor-lambda
+  import:         exe-opts
+  main-is:        Main.hs
+  hs-source-dirs: exe/data-compressor-lambda
+
+executable tool
+  import:         exe-opts
+  main-is:        Main.hs
+  hs-source-dirs: exe/tool
+  ghc-options:    -threaded -rtsopts "-with-rtsopts=-I0 -qg"
+  build-depends:  optparse-applicative

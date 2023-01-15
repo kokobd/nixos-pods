@@ -7,6 +7,7 @@ let nonHaskellTools = with pkgs;
   dhall-lsp-server
   awscli2
   rnix-lsp
+  haskellPackages.cabal-fmt
 ];
 in
 {
