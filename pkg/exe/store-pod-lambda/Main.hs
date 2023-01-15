@@ -1,6 +1,6 @@
 module Main where
 
-import NixosPods.DataCompressor (lambda)
+import NixosPods.StorePod (lambda)
 import Relude
 
 main :: IO ()

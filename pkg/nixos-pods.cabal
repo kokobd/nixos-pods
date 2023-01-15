@@ -44,6 +44,7 @@ common opts
     , effectful-core
     , effectful-th
     , envparse
+    , fast-logger
     , file-embed
     , filepath
     , generic-lens
@@ -65,7 +66,6 @@ common opts
     , uuid
     , wai-handler-hal
     , warp
-    , fast-logger
 
 library
   import:          opts
@@ -73,12 +73,13 @@ library
 
   -- cabal-fmt: expand src
   exposed-modules:
-    NixosPods.DataCompressor
     NixosPods.Dhall
     NixosPods.Dhall.TH
     NixosPods.Infra.Amazonka
     NixosPods.Infra.Logger
+    NixosPods.Infra.UUID
     NixosPods.Prelude
+    NixosPods.StorePod
     NixosPods.Tool
     NixosPods.Tool.Command
     NixosPods.Tool.Command.Deploy
@@ -99,15 +100,15 @@ common exe-opts
   ghc-options:   -threaded -rtsopts -with-rtsopts=-N
   build-depends: nixos-pods
 
-executable data-compressor-job
+executable store-pod-job
   import:         exe-opts
   main-is:        Main.hs
-  hs-source-dirs: exe/data-compressor-job
+  hs-source-dirs: exe/store-pod-job
 
-executable data-compressor-lambda
+executable store-pod-lambda
   import:         exe-opts
   main-is:        Main.hs
-  hs-source-dirs: exe/data-compressor-lambda
+  hs-source-dirs: exe/store-pod-lambda
 
 executable tool
   import:         exe-opts

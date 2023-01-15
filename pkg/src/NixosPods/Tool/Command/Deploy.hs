@@ -26,12 +26,13 @@ import Control.Monad.Logger
 import Data.Aeson qualified as Json
 import Data.Text qualified as T
 import Data.UUID qualified as UUID
-import Data.UUID.V4 qualified as UUID
 import Dhall.JSON (CompileError, dhallToJSON, omitNull)
 import NixosPods.Dhall qualified as Dhall
 import NixosPods.Infra.Amazonka (Amazonka)
 import NixosPods.Infra.Amazonka qualified as Amazonka
 import NixosPods.Infra.Logger (Logger, runPureLoggingT)
+import NixosPods.Infra.UUID (UUIDGen)
+import NixosPods.Infra.UUID qualified as UUID
 import NixosPods.Prelude
 import NixosPods.Tool.Options (OptionsE, getOptions)
 
@@ -49,7 +50,7 @@ runCommandDeploy ::
   ( Amazonka :> es,
     Logger :> es,
     OptionsE :> es,
-    IOE :> es -- UUID
+    UUIDGen :> es
   ) =>
   Eff (CommandDeploy : es) a ->
   Eff es a
@@ -66,7 +67,7 @@ runCommandDeploy = interpret $ \_ -> \case
     let stacks = maybe [] concat $ traverse (view #stacks) responses
         stackExists = any (\stack -> stack ^. #stackName == stackName) stacks
         templateBody = decodeUtf8 . Json.encode $ baseTemplate
-    changeSetName <- ("changeset-" <>) . UUID.toText <$> liftIO UUID.nextRandom
+    changeSetName <- ("changeset-" <>) . UUID.toText <$> UUID.nextUUID
     void $
       Amazonka.send $
         newCreateChangeSet stackName changeSetName
@@ -96,3 +97,6 @@ runCommandDeploy = interpret $ \_ -> \case
         void $ Amazonka.send $ newExecuteChangeSet changeSetName & #stackName ?~ stackName
 
 -- TODO deploy controller.dhall
+-- 1. upload docker images (for Lambda and ECS)
+-- 2. nix-copy-closure to S3 (for programs run in EC2)
+-- 3. deploy controller.dhall using command line tool skopeo

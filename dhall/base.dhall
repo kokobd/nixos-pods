@@ -16,9 +16,11 @@ let S3/Bucket = CFN.Cloudformation.`AWS::S3::Bucket`
 
 let ECR/Repository = CFN.Cloudformation.`AWS::ECR::Repository`
 
+-- meta resources needed to deploy the controller stack
+-- we need some places to store the code
 in  { Resources =
-      { GeneralBucket = S3/Bucket.Resources::{
-        , DeletionPolicy = Some DeletionPolicy.Retain
+      { CodeBucket = S3/Bucket.Resources::{
+        , DeletionPolicy = Some DeletionPolicy.Delete
         , Properties = S3/Bucket.Properties::{
           , LifecycleConfiguration = Some S3/Bucket.LifecycleConfiguration::{
             , Rules =
@@ -70,7 +72,7 @@ in  { Resources =
         }
       }
     , Outputs =
-      { GeneralBucketName.Value = Fn.render (Fn.Ref "GeneralBucket")
+      { CodeBucketName.Value = Fn.render (Fn.Ref "CodeBucket")
       , DataCompressorLambdaECRUri.Value
         =
           Fn.render

@@ -1,4 +1,4 @@
-module NixosPods.DataCompressor
+module NixosPods.StorePod
   ( lambda,
   )
 where

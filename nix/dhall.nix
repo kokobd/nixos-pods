@@ -2,7 +2,7 @@
 
 with pkgs.dhallPackages;
 buildDhallDirectoryPackage {
-  name = "nixos-pods";
+  name = "nixos-pods-dhall";
   dependencies = [ dhall-cloudformation Prelude ];
   src = ../dhall;
   source = true;
