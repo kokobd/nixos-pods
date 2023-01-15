@@ -34,9 +34,15 @@
                 cp ${cabalPackage}/bin/${name} $out
               '';
           in
-          {
+          rec {
             env = cabalPackage.env;
             bin = pickExecutable;
+            dockerImage = name: pkgs.dockerTools.buildImage {
+              inherit name;
+              config = {
+                Cmd = [ "${bin name}" ];
+              };
+            };
           };
 
         tool = (make pkgs).bin "tool";
@@ -56,7 +62,7 @@
         packages =
           {
             inherit tool;
-            data-compressor-lambda = (make pkgs).bin "data-compressor-lambda";
+            data-compressor-lambda = (make pkgs).dockerImage "data-compressor-lambda";
             data-compressor-job = (make pkgs).bin "data-compressor-job";
             inherit dhall;
           };

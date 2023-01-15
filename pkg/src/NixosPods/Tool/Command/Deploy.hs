@@ -66,7 +66,6 @@ runCommandDeploy = interpret $ \_ -> \case
     let stacks = maybe [] concat $ traverse (view #stacks) responses
         stackExists = any (\stack -> stack ^. #stackName == stackName) stacks
         templateBody = decodeUtf8 . Json.encode $ baseTemplate
-    runPureLoggingT $ $(logDebug) templateBody
     changeSetName <- ("changeset-" <>) . UUID.toText <$> liftIO UUID.nextRandom
     void $
       Amazonka.send $
@@ -92,6 +91,8 @@ runCommandDeploy = interpret $ \_ -> \case
       then do
         runPureLoggingT $ $(logInfo) "No change is required, skipping deployment"
         void $ Amazonka.send $ newDeleteChangeSet changeSetName & #stackName ?~ stackName
-      else void $ Amazonka.send $ newExecuteChangeSet changeSetName & #stackName ?~ stackName
+      else do
+        runPureLoggingT $ $(logInfo) "Prepare to execute changeset"
+        void $ Amazonka.send $ newExecuteChangeSet changeSetName & #stackName ?~ stackName
 
 -- TODO deploy controller.dhall

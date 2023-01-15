@@ -12,9 +12,10 @@ import NixosPods.Infra.Logger (runStdoutDefaultLogger)
 import Relude
 
 lambda :: IO ()
-lambda = runEff
-  . runResource
-  . runStdoutDefaultLogger
-  . runAmazonka
-  . mRuntime
-  $ \(_event :: EventBridgeEvent) -> pure "Hello, world."
+lambda =
+  runEff
+    . runResource
+    . runStdoutDefaultLogger
+    . runAmazonka
+    . mRuntime
+    $ \(_event :: EventBridgeEvent) -> pure "Hello, world."
