@@ -4,6 +4,7 @@
 }:
 let
   pkgs = nixpkgs.legacyPackages.${system};
+  serviceExeNames = [ "store-pod-lambda" "store-pod-job" ];
   make = pkgs:
     let
       cabalPackage =
@@ -22,9 +23,9 @@ let
             { });
 
       pickExecutable = name:
-        pkgs.runCommand name { } ''
+        (pkgs.runCommand name { } ''
           cp ${cabalPackage}/bin/${name} $out
-        '';
+        '');
     in
     rec {
       env = cabalPackage.env;
@@ -37,6 +38,15 @@ let
       };
     };
   tool = (make pkgs).bin "tool";
+  services =
+    pkgs.runCommand "nixos-pods-serivces" { } (
+      "mkdir -p $out/images\n" +
+      builtins.concatStringsSep "\n" (
+        builtins.map
+          (name: "cp ${(make pkgs).dockerImage name} $out/images/${name};")
+          serviceExeNames
+      )
+    );
 in
 {
   apps.tool = {
@@ -47,13 +57,11 @@ in
   packages =
     {
       inherit tool;
-      store-pod-lambda = (make pkgs).dockerImage "store-pod-lambda";
-      store-pod-job = (make pkgs).bin "store-pod-job";
+      inherit services;
     };
 
   devShells.default = (make pkgs).env.overrideAttrs (oldAttrs: {
-    packages = oldAttrs.buildInputs
-      ++ [
+    buildInputs = oldAttrs.buildInputs ++ [
       dhall
     ] ++ (
       with pkgs; [

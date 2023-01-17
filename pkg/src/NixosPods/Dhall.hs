@@ -13,4 +13,4 @@ import Dhall.Core (Expr)
 import NixosPods.Dhall.TH (withPackage)
 
 base :: Expr s a
-base = $(withPackage (\pkg -> [i|#{pkg}.cfnStackTemplates.base|]))
+base = $(withPackage (\pkg -> [i|#{pkg}.base|]))

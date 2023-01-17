@@ -1,1 +1,1 @@
-{ cfnStackTemplates.base = ./base.dhall }
+{ base = ./base.dhall, controller = ./controller.dhall }

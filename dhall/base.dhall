@@ -8,6 +8,8 @@ let CFN =
 
 let JSON = Prelude.JSON
 
+let Prelude/Map = Prelude.Map
+
 let Fn = CFN.Fn
 
 let DeletionPolicy = CFN.DeletionPolicy
@@ -16,61 +18,79 @@ let S3/Bucket = CFN.Cloudformation.`AWS::S3::Bucket`
 
 let ECR/Repository = CFN.Cloudformation.`AWS::ECR::Repository`
 
--- meta resources needed to deploy the controller stack
--- we need some places to store the code
+let Resource =
+      < S3Bucket : S3/Bucket.Resources.Type
+      | ECRRepository : ECR/Repository.Resources.Type
+      >
+
 in  { Resources =
-      { CodeBucket = S3/Bucket.Resources::{
-        , DeletionPolicy = Some DeletionPolicy.Delete
-        , Properties = S3/Bucket.Properties::{
-          , LifecycleConfiguration = Some S3/Bucket.LifecycleConfiguration::{
-            , Rules =
-              [ S3/Bucket.Rule::{
-                , Transitions = Some
-                  [ S3/Bucket.Transition::{
-                    , StorageClass = Fn.renderText "INTELLIGENT_TIERING"
-                    , TransitionInDays = Some +1
+          toMap
+            { CodeBucket =
+                Resource.S3Bucket
+                  S3/Bucket.Resources::{
+                  , DeletionPolicy = Some DeletionPolicy.Delete
+                  , Properties = S3/Bucket.Properties::{
+                    , LifecycleConfiguration = Some S3/Bucket.LifecycleConfiguration::{
+                      , Rules =
+                        [ S3/Bucket.Rule::{
+                          , Transitions = Some
+                            [ S3/Bucket.Transition::{
+                              , StorageClass =
+                                  Fn.renderText "INTELLIGENT_TIERING"
+                              , TransitionInDays = Some +1
+                              }
+                            ]
+                          , Status = Fn.renderText "Enabled"
+                          }
+                        ]
+                      }
                     }
-                  ]
-                , Status = Fn.renderText "Enabled"
-                }
-              ]
+                  }
             }
-          }
-        }
-      , DataCompressorLambdaECR = ECR/Repository.Resources::{
-        , Properties = ECR/Repository.Properties::{
-          , RepositoryPolicyText = Some
-              ( JSON.object
-                  ( toMap
-                      { Version = JSON.string "2012-10-17"
-                      , Statement =
-                          JSON.array
-                            [ JSON.object
+        # Prelude.List.map
+            Text
+            (Prelude/Map.Entry Text Resource)
+            ( \(name : Text) ->
+                { mapKey = "ECR-" ++ name
+                , mapValue =
+                    Resource.ECRRepository
+                      ECR/Repository.Resources::{
+                      , Properties = ECR/Repository.Properties::{
+                        , RepositoryPolicyText = Some
+                            ( JSON.object
                                 ( toMap
-                                    { Effect = JSON.string "Allow"
-                                    , Principal =
-                                        JSON.object
-                                          ( toMap
-                                              { Service =
-                                                  JSON.string
-                                                    "lambda.amazonaws.com"
-                                              }
-                                          )
-                                    , Action =
+                                    { Version = JSON.string "2012-10-17"
+                                    , Statement =
                                         JSON.array
-                                          [ JSON.string "ecr:BatchGetImage"
-                                          , JSON.string
-                                              "ecr:GetDownloadUrlForLayer"
+                                          [ JSON.object
+                                              ( toMap
+                                                  { Effect = JSON.string "Allow"
+                                                  , Principal =
+                                                      JSON.object
+                                                        ( toMap
+                                                            { Service =
+                                                                JSON.string
+                                                                  "lambda.amazonaws.com"
+                                                            }
+                                                        )
+                                                  , Action =
+                                                      JSON.array
+                                                        [ JSON.string
+                                                            "ecr:BatchGetImage"
+                                                        , JSON.string
+                                                            "ecr:GetDownloadUrlForLayer"
+                                                        ]
+                                                  }
+                                              )
                                           ]
                                     }
                                 )
-                            ]
+                            )
+                        }
                       }
-                  )
-              )
-          }
-        }
-      }
+                }
+            )
+            ./services.dhall
     , Outputs =
       { CodeBucketName.Value = Fn.render (Fn.Ref "CodeBucket")
       , DataCompressorLambdaECRUri.Value
