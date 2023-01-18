@@ -75,7 +75,8 @@ library
   -- cabal-fmt: expand src
   exposed-modules:
     NixosPods.Dhall
-    NixosPods.Dhall.TH
+    NixosPods.Dhall.TH0
+    NixosPods.Dhall.TH1
     NixosPods.Infra.Amazonka
     NixosPods.Infra.Logger
     NixosPods.Infra.UUID

@@ -1,1 +1,1 @@
-[ "store-pod-lambda", "store-pod-job" ]
+[ "StorePodLambda", "StorePodJob" ]

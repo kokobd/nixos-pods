@@ -4,13 +4,21 @@
 {-# OPTIONS_GHC -Wno-unused-top-binds #-}
 
 module NixosPods.Dhall
-  ( base,
+  ( baseStack
+  , controllerStack
+  , services
   )
 where
 
-import Data.String.Interpolate (i)
-import Dhall.Core (Expr)
-import NixosPods.Dhall.TH (withPackage)
+import NixosPods.Dhall.TH1
+import Relude
+import qualified Data.Text as T
 
-base :: Expr s a
-base = $(withPackage (\pkg -> [i|#{pkg}.base|]))
+baseStack :: Text
+baseStack = decodeUtf8 $(dhallToYamlTH (<> ".stacks.base"))
+
+controllerStack :: ByteString
+controllerStack = $(dhallToYamlTH (<> ".stacks.controller"))
+
+services :: [Text]
+services = T.pack <$> $(servicesTH)

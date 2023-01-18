@@ -26,11 +26,6 @@ data Options = Options
 data Command = CommandDeploy
   deriving stock (Show, Eq, Generic)
 
-data DeployOptions = DeployOptions
-  { skopeoPath :: Text
-  , dockerImagesPath :: Text
-  }
-
 readOptions :: IO Options
 readOptions = execParser opts
   where

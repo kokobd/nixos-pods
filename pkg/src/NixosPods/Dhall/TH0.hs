@@ -1,19 +1,17 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module NixosPods.Dhall.TH
-  ( withPackage,
+module NixosPods.Dhall.TH0
+  ( dhallPackagePathTH
   )
 where
 
 import Data.FileEmbed (makeRelativeToLocationPredicate)
-import Data.Text qualified as T
-import Dhall.TH (staticDhallExpression)
-import Language.Haskell.TH (Exp, Q)
+import Language.Haskell.TH (Exp (..), Lit (..), Q)
 import Language.Haskell.TH.Syntax (addDependentFile)
 import Relude
 
-withPackage :: (Text -> Text) -> Q Exp
-withPackage f = do
+dhallPackagePathTH :: Q Exp
+dhallPackagePathTH = do
   packagePathMaybe <- liftIO $ lookupEnv "DHALL_PACKAGE_PATH"
   packagePath <-
     maybe
@@ -22,4 +20,4 @@ withPackage f = do
       pure
       packagePathMaybe
   addDependentFile packagePath
-  staticDhallExpression $ f ("(" <> T.pack packagePath <> ")")
+  pure . LitE . StringL $ packagePath

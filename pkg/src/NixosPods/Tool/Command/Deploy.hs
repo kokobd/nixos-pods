@@ -27,12 +27,11 @@ import Conduit qualified as C
 import Control.Exception.Safe (MonadThrow, throw)
 import Control.Lens (view, (?~), (^.))
 import Control.Monad.Logger
-import Data.Aeson qualified as Json
 import Data.Map.Strict qualified as Map
 import Data.String.Interpolate (i)
 import Data.Text qualified as T
 import Data.UUID qualified as UUID
-import Dhall.JSON (CompileError, dhallToJSON, omitNull)
+import Dhall.JSON (CompileError)
 import NixosPods.Dhall qualified as Dhall
 import NixosPods.Infra.Amazonka (Amazonka)
 import NixosPods.Infra.Amazonka qualified as Amazonka
@@ -76,14 +75,14 @@ runCommandDeploy = interpret $ \_ -> \case
     let makeStackName :: Text -> Text
         makeStackName name = stackNamePrefix <> "-" <> name
     baseStack <- deployBaseStack makeStackName
+    uploadServiceImages baseStack
+    -- TODO upload controller template to S3, then deploy controller stack
     pure ()
 
--- TODO deploy controller.dhall
--- 1. upload docker images
--- 2. deploy controller.dhall using command line tool skopeo
-
-newtype BaseStack = BaseStack
-  { dataCompressorLambdaECRUri :: Text
+data BaseStack = BaseStack
+  { codeBucketName :: Text,
+    -- | from service executable name, to URI of the ECR repository
+    ecrUris :: Map Text Text
   }
   deriving stock (Show, Eq, Generic)
 
@@ -95,15 +94,11 @@ deployBaseStack ::
   (Text -> Text) ->
   Eff es BaseStack
 deployBaseStack makeStackName = do
-  baseTemplate <- case dhallToJSON Dhall.base of
-    Left err -> throw $ DhallJSONError err
-    Right x -> pure (omitNull x)
   let stackName = makeStackName "base"
   existingStackConduit <- Amazonka.paginate newDescribeStacks
   responses <- C.runConduit $ existingStackConduit C..| C.sinkList
   let stacks = maybe [] concat $ traverse (view #stacks) responses
       stackExists = any (\stack -> stack ^. #stackName == stackName) stacks
-      templateBody = decodeUtf8 . Json.encode $ baseTemplate
   changeSetName <- ("changeset-" <>) . UUID.toText <$> UUID.nextUUID
   void $
     Amazonka.send $
@@ -111,7 +106,7 @@ deployBaseStack makeStackName = do
         & #changeSetType
           ?~ (if stackExists then ChangeSetType_UPDATE else ChangeSetType_CREATE)
         & #templateBody
-          ?~ templateBody
+          ?~ Dhall.baseStack
   void $
     Amazonka.await newChangeSetCreateComplete $
       newDescribeChangeSet changeSetName
@@ -130,13 +125,15 @@ deployBaseStack makeStackName = do
       runPureLoggingT $ $(logInfo) "No change is required, skipping deployment"
       void $ Amazonka.send $ newDeleteChangeSet changeSetName & #stackName ?~ stackName
     else do
-      runPureLoggingT $ $(logInfo) "Prepare to execute changeset"
+      runPureLoggingT $ $(logInfo) "Start executing changeset"
       void $ Amazonka.send $ newExecuteChangeSet changeSetName & #stackName ?~ stackName
   accept <- Amazonka.await newStackUpdateComplete $ newDescribeStacks & #stackName ?~ stackName
   when (accept /= AcceptSuccess) $ do
     runPureLoggingT $ $(logError) "Failed to deploy controller stack, please check it in AWS console"
     throw CfnStackUpdateFailure {stackName}
-  getBaseStackOutput stackName
+  baseStack <- getBaseStackOutput stackName
+  runPureLoggingT $ $(logInfo) "Base stack is ready"
+  pure baseStack
 
 getBaseStackOutput ::
   ( Amazonka :> es,
@@ -162,9 +159,9 @@ getBaseStackOutput stackName = do
       throw CfnStackUpdateFailure {stackName}
 
 parseBaseStack :: forall m. MonadThrow m => Text -> [Output] -> m BaseStack
-parseBaseStack stackName outputs =
-  BaseStack
-    <$> expectField "DataCompressorLambdaECRUri"
+parseBaseStack stackName outputs = do
+  codeBucketName <- expectField "CodeBucketName"
+  pure BaseStack {codeBucketName, ecrUris}
   where
     outputsMap :: Map Text Text
     outputsMap = fromList $ mapMaybe (\o -> liftA2 (,) (o ^. #outputKey) (o ^. #outputValue)) outputs
@@ -172,3 +169,13 @@ parseBaseStack stackName outputs =
     expectField :: Text -> m Text
     expectField key =
       maybe (throw StackOutputNotFoundError {stackName, outputKey = Just key}) pure (outputsMap Map.!? key)
+
+    ecrUris =
+      Map.mapMaybeWithKey (\k _ -> T.stripPrefix "ECR" k) outputsMap
+
+uploadServiceImages :: BaseStack -> Eff es ()
+uploadServiceImages BaseStack {ecrUris} = do
+  -- TODO implement me (using skopeo)
+  pure ()
+
+-- uploadServiceImages BaseStack{dataCompressorLambdaECRUri = aa} = undefined

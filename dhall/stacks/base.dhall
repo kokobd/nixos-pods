@@ -8,8 +8,6 @@ let CFN =
 
 let JSON = Prelude.JSON
 
-let Prelude/Map = Prelude.Map
-
 let Fn = CFN.Fn
 
 let DeletionPolicy = CFN.DeletionPolicy
@@ -49,9 +47,9 @@ in  { Resources =
             }
         # Prelude.List.map
             Text
-            (Prelude/Map.Entry Text Resource)
+            (Prelude.Map.Entry Text Resource)
             ( \(name : Text) ->
-                { mapKey = "ECR-" ++ name
+                { mapKey = "ECR${name}"
                 , mapValue =
                     Resource.ECRRepository
                       ECR/Repository.Resources::{
@@ -90,12 +88,16 @@ in  { Resources =
                       }
                 }
             )
-            ./services.dhall
+            ../services.dhall
     , Outputs =
-      { CodeBucketName.Value = Fn.render (Fn.Ref "CodeBucket")
-      , DataCompressorLambdaECRUri.Value
-        =
-          Fn.render
-            (ECR/Repository.GetAttr.RepositoryUri "DataCompressorLambdaECR")
-      }
+          toMap { CodeBucketName.Value = Fn.render (Fn.Ref "CodeBucket") }
+        # Prelude.List.map
+            Text
+            (Prelude.Map.Entry Text { Value : JSON.Type })
+            ( \(name : Text) ->
+                { mapKey = "ECR${name}"
+                , mapValue.Value = Fn.render (Fn.Ref "ECR${name}")
+                }
+            )
+            ../services.dhall
     }
