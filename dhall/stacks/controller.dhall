@@ -14,22 +14,27 @@ let Lambda/Function = CFN.Cloudformation.`AWS::Lambda::Function`
 
 let IAM/Role = CFN.Cloudformation.`AWS::IAM::Role`
 
-in  { Parameters.DataCompressorLambdaImageUri
-      =
-      { Type = "String", Description = "image uri for data-compressor-lambda" }
+in  { Parameters =
+        Prelude.List.map
+          Text
+          (Prelude.Map.Entry Text { Type : Text })
+          ( \(name : Text) ->
+              { mapKey = "ImageUri${name}", mapValue.Type = "String" }
+          )
+          ../services.dhall
     , Resources =
-      { DataCompressorFunction = Lambda/Function.Resources::{
+      { StorePodFunction = Lambda/Function.Resources::{
         , Properties = Lambda/Function.Properties::{
           , Code = Lambda/Function.Code::{
             , ImageUri = Some
-                (Fn.render (Fn.Ref "DataCompressorLambdaImageUri"))
+                (Fn.render (Fn.Ref "ImageUriStorePodLambda"))
             }
           , PackageType = Some (Fn.renderText "Image")
           , MemorySize = Some +128
-          , Role = Fn.render (Fn.Ref "DataCompressorFunctionRole")
+          , Role = Fn.render (IAM/Role.GetAttr.Arn "StorePodFunctionRole")
           }
         }
-      , DataCompressorFunctionRole = IAM/Role.Resources::{
+      , StorePodFunctionRole = IAM/Role.Resources::{
         , Properties = IAM/Role.Properties::{
           , AssumeRolePolicyDocument =
               JSON.object
@@ -46,7 +51,7 @@ in  { Parameters.DataCompressorLambdaImageUri
                                   JSON.object
                                     [ { mapKey = "Service"
                                       , mapValue =
-                                          JSON.string "ec2.amazonaws.com"
+                                          JSON.string "lambda.amazonaws.com"
                                       }
                                     ]
                               }

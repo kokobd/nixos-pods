@@ -13,12 +13,14 @@ where
 import NixosPods.Dhall.TH1
 import Relude
 import qualified Data.Text as T
+import Control.Lens
 
 baseStack :: Text
 baseStack = decodeUtf8 $(dhallToYamlTH (<> ".stacks.base"))
 
-controllerStack :: ByteString
-controllerStack = $(dhallToYamlTH (<> ".stacks.controller"))
+controllerStack :: Text
+controllerStack = decodeUtf8 $(dhallToYamlTH (<> ".stacks.controller"))
 
-services :: [Text]
-services = T.pack <$> $(servicesTH)
+-- | from image logical names listed in dhall (LikeThis) to executables listed in cabal files (like-this)
+services :: Map Text Text
+services = fromList $ $(servicesTH) & traverse . both %~ T.pack

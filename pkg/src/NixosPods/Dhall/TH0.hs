@@ -9,13 +9,14 @@ import Data.FileEmbed (makeRelativeToLocationPredicate)
 import Language.Haskell.TH (Exp (..), Lit (..), Q)
 import Language.Haskell.TH.Syntax (addDependentFile)
 import Relude
+import System.FilePath ((</>))
 
 dhallPackagePathTH :: Q Exp
 dhallPackagePathTH = do
   packagePathMaybe <- liftIO $ lookupEnv "DHALL_PACKAGE_PATH"
   packagePath <-
     maybe
-      ( makeRelativeToLocationPredicate (== "flake.nix") "dhall/package.dhall"
+      ( makeRelativeToLocationPredicate (== "flake.nix") ("dhall" </> "package.dhall")
       )
       pure
       packagePathMaybe

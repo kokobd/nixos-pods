@@ -1,6 +1,7 @@
 module NixosPods.Dhall.TH1
   ( dhallToYamlTH,
     servicesTH,
+    toExecutableName,
   )
 where
 
@@ -27,7 +28,7 @@ dhallToYamlTH f = bsToExp =<< liftIO (dhallToYaml opts Nothing (f [i|(#{dhallPac
 servicesTH :: Q Exp
 servicesTH = do
   strs <- liftIO $ Dhall.input (Dhall.list Dhall.string) [i|(#{dhallPackagePath}).services|]
-  pure . ListE . fmap (LitE . StringL . toExecutableName) $ strs
+  pure . ListE . fmap (\name -> TupE . fmap (Just . LitE . StringL) $ [name, toExecutableName name]) $ strs
 
 toExecutableName :: String -> String
 toExecutableName name =

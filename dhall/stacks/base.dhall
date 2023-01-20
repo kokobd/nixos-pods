@@ -96,7 +96,7 @@ in  { Resources =
             (Prelude.Map.Entry Text { Value : JSON.Type })
             ( \(name : Text) ->
                 { mapKey = "ECR${name}"
-                , mapValue.Value = Fn.render (Fn.Ref "ECR${name}")
+                , mapValue.Value = Fn.render (ECR/Repository.GetAttr.RepositoryUri "ECR${name}")
                 }
             )
             ../services.dhall

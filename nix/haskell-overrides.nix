@@ -41,6 +41,7 @@ builtins.listToAttrs
     (amazonkaServicePackage "amazonka-ec2")
     (amazonkaServicePackage "amazonka-dynamodb")
     (amazonkaServicePackage "amazonka-cloudformation")
+    (amazonkaServicePackage "amazonka-ecr")
     (mkSubDirPackage "wai-handler-hal" "wai-handler-hal" wai-handler-hal-src)
   ] // {
   pretty-simple = prev.callHackage "pretty-simple" "4.1.2.0" { };

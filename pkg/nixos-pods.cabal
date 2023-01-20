@@ -35,9 +35,12 @@ common opts
     , amazonka-cloudformation
     , amazonka-dynamodb
     , amazonka-ec2
+    , amazonka-ecr
     , amazonka-s3
     , base
+    , base64
     , conduit
+    , conduit-extra
     , dhall
     , dhall-json
     , directory
@@ -49,6 +52,7 @@ common opts
     , file-embed
     , filepath
     , generic-lens
+    , unliftio
     , hal
     , hoist-error
     , lens
@@ -56,6 +60,7 @@ common opts
     , monad-logger-aeson
     , mtl
     , optparse-applicative
+    , process
     , relude
     , resourcet-effectful
     , safe-exceptions
@@ -63,6 +68,7 @@ common opts
     , servant-server
     , string-interpolate
     , template-haskell
+    , time
     , transformers
     , uuid
     , wai-handler-hal
@@ -78,6 +84,8 @@ library
     NixosPods.Dhall.TH0
     NixosPods.Dhall.TH1
     NixosPods.Infra.Amazonka
+    NixosPods.Infra.Amazonka.ECRHelper
+    NixosPods.Infra.Clock
     NixosPods.Infra.Logger
     NixosPods.Infra.UUID
     NixosPods.Prelude
@@ -85,6 +93,7 @@ library
     NixosPods.Tool
     NixosPods.Tool.Command
     NixosPods.Tool.Command.Deploy
+    NixosPods.Tool.Environment
     NixosPods.Tool.Options
 
 test-suite tests
