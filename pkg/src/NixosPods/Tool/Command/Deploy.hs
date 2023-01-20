@@ -89,7 +89,7 @@ runCommandDeploy = interpret $ \_ -> \case
     deployControllerStack makeStackName uploadedDockerImages
 
 data BaseStack = BaseStack
-  { codeBucketName :: Text,
+  { s3BucketName :: Text,
     -- | from service executable name, to URI of the ECR repository
     ecrUris :: Map Text Text
   }
@@ -132,8 +132,8 @@ getBaseStackOutput stackName = do
 
 parseBaseStack :: forall m. MonadThrow m => Text -> [Output] -> m BaseStack
 parseBaseStack stackName outputs = do
-  codeBucketName <- expectField "CodeBucketName"
-  pure BaseStack {codeBucketName, ecrUris}
+  s3BucketName <- expectField "GeneralBucketName"
+  pure BaseStack {s3BucketName, ecrUris}
   where
     outputsMap :: Map Text Text
     outputsMap = fromList $ mapMaybe (\o -> liftA2 (,) (o ^. #outputKey) (o ^. #outputValue)) outputs

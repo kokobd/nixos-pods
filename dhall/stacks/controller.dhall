@@ -10,9 +10,13 @@ let CFN =
 
 let Fn = CFN.Fn
 
+let DeletionPolicy = CFN.DeletionPolicy
+
 let Lambda/Function = CFN.Cloudformation.`AWS::Lambda::Function`
 
 let IAM/Role = CFN.Cloudformation.`AWS::IAM::Role`
+
+let S3/Bucket = CFN.Cloudformation.`AWS::S3::Bucket`
 
 in  { Parameters =
         Prelude.List.map
@@ -23,11 +27,28 @@ in  { Parameters =
           )
           ../services.dhall
     , Resources =
-      { StorePodFunction = Lambda/Function.Resources::{
+      { GeneralBucket = S3/Bucket.Resources::{
+        , DeletionPolicy = Some DeletionPolicy.Delete
+        , Properties = S3/Bucket.Properties::{
+          , LifecycleConfiguration = Some S3/Bucket.LifecycleConfiguration::{
+            , Rules =
+              [ S3/Bucket.Rule::{
+                , Transitions = Some
+                  [ S3/Bucket.Transition::{
+                    , StorageClass = Fn.renderText "INTELLIGENT_TIERING"
+                    , TransitionInDays = Some +1
+                    }
+                  ]
+                , Status = Fn.renderText "Enabled"
+                }
+              ]
+            }
+          }
+        }
+      , StorePodFunction = Lambda/Function.Resources::{
         , Properties = Lambda/Function.Properties::{
           , Code = Lambda/Function.Code::{
-            , ImageUri = Some
-                (Fn.render (Fn.Ref "ImageUriStorePodLambda"))
+            , ImageUri = Some (Fn.render (Fn.Ref "ImageUriStorePodLambda"))
             }
           , PackageType = Some (Fn.renderText "Image")
           , MemorySize = Some +128

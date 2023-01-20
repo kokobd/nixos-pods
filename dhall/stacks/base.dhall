@@ -23,7 +23,7 @@ let Resource =
 
 in  { Resources =
           toMap
-            { CodeBucket =
+            { GeneralBucket =
                 Resource.S3Bucket
                   S3/Bucket.Resources::{
                   , DeletionPolicy = Some DeletionPolicy.Delete
@@ -90,7 +90,7 @@ in  { Resources =
             )
             ../services.dhall
     , Outputs =
-          toMap { CodeBucketName.Value = Fn.render (Fn.Ref "CodeBucket") }
+          toMap { GeneralBucketName.Value = Fn.render (Fn.Ref "GeneralBucket") }
         # Prelude.List.map
             Text
             (Prelude.Map.Entry Text { Value : JSON.Type })

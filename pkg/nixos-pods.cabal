@@ -52,7 +52,6 @@ common opts
     , file-embed
     , filepath
     , generic-lens
-    , unliftio
     , hal
     , hoist-error
     , lens
@@ -70,6 +69,7 @@ common opts
     , template-haskell
     , time
     , transformers
+    , unliftio
     , uuid
     , wai-handler-hal
     , warp
@@ -110,6 +110,11 @@ common exe-opts
   import:        opts
   ghc-options:   -threaded -rtsopts -with-rtsopts=-N
   build-depends: nixos-pods
+
+executable control-panel-lambda
+  import:         exe-opts
+  main-is:        Main.hs
+  hs-source-dirs: exe/control-panel-lambda
 
 executable store-pod-job
   import:         exe-opts

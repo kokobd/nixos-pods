@@ -1,1 +1,1 @@
-[ "StorePodLambda", "StorePodJob" ]
+[ "StorePodLambda", "StorePodJob", "ControlPanelLambda" ]
